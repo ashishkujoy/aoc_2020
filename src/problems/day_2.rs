@@ -32,18 +32,18 @@ impl PasswordPolicy {
         (self.min_occurance..self.max_occurance + 1).contains(&(char_occurance_count as usize))
     }
 
-    fn is_adhered_by_v2(&self, password: &str) -> Vec<(usize, char)> {
-        let indexes = vec![self.min_occurance + 1, self.max_occurance + 1];
+    fn is_adhered_by_v2(&self, password: &str) -> bool {
+        let indexes = vec![self.min_occurance, self.max_occurance];
         password
             .char_indices()
             .filter(|(index, character)| {
-                indexes.contains(index) && *character == self.char
+                indexes.contains(&(index + 1)) && *character == self.char
             })
-            .collect()
+            .count() == 1
     }
 }
 
-fn parse_password_and_policy<'i>(input: &'i str) -> (&str, PasswordPolicy) {
+fn parse_password_and_policy(input: &str) -> (&str, PasswordPolicy) {
     let mut inputs = input.split(": ");
     let password_policy = PasswordPolicy::parse(inputs.next().unwrap());
     (inputs.next().expect("missing password"), password_policy)
@@ -58,6 +58,18 @@ fn get_count_of_invalid_passwords(inputs: &Vec<&str>) -> usize {
         })
         .count()
 }
+
+fn get_count_of_valid_passwords_v2(inputs: &Vec<&str>) -> usize {
+    inputs
+        .into_iter()
+        .filter(|input| {
+            let (password, password_policy) = parse_password_and_policy(input);
+            password_policy.is_adhered_by_v2(password)
+        })
+        .count()
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -72,7 +84,7 @@ mod tests {
             PasswordPolicy {
                 char: 'j',
                 min_occurance: 1,
-                max_occurance: 7
+                max_occurance: 7,
             }
         )
     }
@@ -88,7 +100,7 @@ mod tests {
             PasswordPolicy {
                 char: 'j',
                 min_occurance: 1,
-                max_occurance: 7
+                max_occurance: 7,
             }
         );
     }
@@ -103,9 +115,9 @@ mod tests {
 
         assert!(password_policy.is_adhered_by("vrfjljjwbsv"))
     }
+
     #[test]
-    fn check_a_password_having_given_char_between_below_min_count_does_not_adhere_to_password_policy(
-    ) {
+    fn check_a_password_having_given_char_between_below_min_count_does_not_adhere_to_password_policy() {
         let password_policy = PasswordPolicy {
             char: 'j',
             min_occurance: 5,
@@ -114,9 +126,9 @@ mod tests {
 
         assert!(!password_policy.is_adhered_by("vrfjljjwbsv"))
     }
+
     #[test]
-    fn check_a_password_having_given_char_between_above_max_count_does_not_adhere_to_password_policy(
-    ) {
+    fn check_a_password_having_given_char_between_above_max_count_does_not_adhere_to_password_policy() {
         let password_policy = PasswordPolicy {
             char: 'j',
             min_occurance: 1,
@@ -140,6 +152,28 @@ mod tests {
             min_occurance: 1,
             max_occurance: 3,
         };
-        assert_eq!(password_policy.is_adhered_by_v2(input), vec![])
+        assert!(password_policy.is_adhered_by_v2(input))
+    }
+
+    #[test]
+    fn check_a_password_is_positionally_incorrect() {
+        let input = "cdefg";
+        let password_policy = PasswordPolicy {
+            char: 'b',
+            min_occurance: 1,
+            max_occurance: 3,
+        };
+        assert!(!password_policy.is_adhered_by_v2(input))
+    }
+
+    #[test]
+    fn get_count_of_password_which_are_positionally_correct() {
+        let inputs = vec![
+            "1-3 a: abcde",
+            "1-3 b: cdefg",
+            "2-9 c: ccccccccc",
+        ];
+
+        assert_eq!(get_count_of_valid_passwords_v2(&inputs), 1);
     }
 }
