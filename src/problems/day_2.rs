@@ -9,21 +9,18 @@ impl PasswordPolicy {
     fn parse(input: &str) -> Self {
         let mut inputs = input.split_ascii_whitespace();
 
-        let mut min_max = inputs
+        let min_max: Vec<usize> = inputs
             .next()
-            .expect("min and max count required")
-            .split("-")
-            .map(|e| e.parse::<usize>().expect("min/max should be u16"));
+            .map(|s| s.split("-").map(|e| e.parse::<usize>().unwrap()))
+            .unwrap()
+            .collect();
 
-        let min = min_max.next().expect("min occurance required");
-        let max = min_max.next().expect("max occurance required");
-
-        let char = inputs.next().unwrap().chars().next().unwrap();
+        let char = inputs.next().map(|e| e.chars().next()).flatten().unwrap();
 
         PasswordPolicy {
             char,
-            min_occurance: min,
-            max_occurance: max,
+            min_occurance: min_max[0],
+            max_occurance: min_max[1],
         }
     }
 
@@ -36,10 +33,9 @@ impl PasswordPolicy {
         let indexes = vec![self.min_occurance, self.max_occurance];
         password
             .char_indices()
-            .filter(|(index, character)| {
-                indexes.contains(&(index + 1)) && *character == self.char
-            })
-            .count() == 1
+            .filter(|(index, character)| indexes.contains(&(index + 1)) && *character == self.char)
+            .count()
+            == 1
     }
 }
 
@@ -68,7 +64,6 @@ fn get_count_of_valid_passwords_v2(inputs: &Vec<&str>) -> usize {
         })
         .count()
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -117,7 +112,8 @@ mod tests {
     }
 
     #[test]
-    fn check_a_password_having_given_char_between_below_min_count_does_not_adhere_to_password_policy() {
+    fn check_a_password_having_given_char_between_below_min_count_does_not_adhere_to_password_policy(
+    ) {
         let password_policy = PasswordPolicy {
             char: 'j',
             min_occurance: 5,
@@ -128,7 +124,8 @@ mod tests {
     }
 
     #[test]
-    fn check_a_password_having_given_char_between_above_max_count_does_not_adhere_to_password_policy() {
+    fn check_a_password_having_given_char_between_above_max_count_does_not_adhere_to_password_policy(
+    ) {
         let password_policy = PasswordPolicy {
             char: 'j',
             min_occurance: 1,
@@ -168,11 +165,7 @@ mod tests {
 
     #[test]
     fn get_count_of_password_which_are_positionally_correct() {
-        let inputs = vec![
-            "1-3 a: abcde",
-            "1-3 b: cdefg",
-            "2-9 c: ccccccccc",
-        ];
+        let inputs = vec!["1-3 a: abcde", "1-3 b: cdefg", "2-9 c: ccccccccc"];
 
         assert_eq!(get_count_of_valid_passwords_v2(&inputs), 1);
     }
