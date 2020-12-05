@@ -13,6 +13,11 @@ fn count_valid_password_docs(docs: &str) -> usize {
         .count()
 }
 
+fn count_valid_password_docs_v2(docs: &str) -> usize {
+    docs.split("\n\n")
+        .filter(|p| PasswordDoc::parse(p).map(|e| e.is_valid()) == Some(true))
+        .count()
+}
 #[derive(Debug, PartialOrd, PartialEq)]
 struct Year {
     value: usize,
@@ -50,6 +55,11 @@ impl<'i> Height<'i> {
             Err(_) => None,
         }
     }
+
+    fn is_valid(&self) -> bool {
+        let expected_range = if self.unit == "cm" { 150..194 } else { 59..77 };
+        expected_range.contains(&self.value)
+    }
 }
 
 #[derive(Debug, PartialOrd, PartialEq)]
@@ -59,7 +69,7 @@ struct Color<'i> {
 
 impl<'i> Color<'i> {
     fn is_valid_hair_color(&self) -> bool {
-        let regex = Regex::new(r"(^#[a-f]{6})|(#[0-9]{6})").unwrap();
+        let regex = Regex::new(r"(^#[(0-9)(a-f)]{6})").unwrap();
         self.value.len() == 7 && regex.is_match(self.value)
     }
 
@@ -129,6 +139,16 @@ impl<'i> PasswordDoc<'i> {
             })
         }
     }
+
+    fn is_valid(&self) -> bool {
+        self.birth_year.is_between_include_edges(1920, 2003)
+            && self.issue_year.is_between_include_edges(2010, 2021)
+            && self.expiration_year.is_between_include_edges(2020, 2031)
+            && self.height.is_valid()
+            && self.eye_color.is_valid_eye_color()
+            && self.hair_color.is_valid_hair_color()
+            && self.password_id.is_valid()
+    }
 }
 
 #[cfg(test)]
@@ -197,17 +217,15 @@ mod test {
     }
 
     #[test]
-    fn check_a_hair_color_starting_with_hash_followed_by_6_digit_is_valid() {
+    fn check_a_hair_color_is_valid() {
         assert!(Color { value: "#123653" }.is_valid_hair_color());
-    }
-    #[test]
-    fn check_a_hair_color_starting_with_hash_followed_by_6_alphabets_is_valid() {
         assert!(Color { value: "#abcdef" }.is_valid_hair_color());
+        assert!(Color { value: "#123abc" }.is_valid_hair_color());
     }
     #[test]
     fn check_a_hair_color_not_starting_with_hash_followed_by_either_6_digit_or_small_case_alphabet_from_a_to_f(
     ) {
-        assert!(!Color { value: "#akcdef" }.is_valid_hair_color());
+        assert!(!Color { value: "#123abz" }.is_valid_hair_color());
         assert!(!Color { value: "#1234567" }.is_valid_hair_color());
         assert!(!Color { value: "1234567" }.is_valid_hair_color());
         assert!(!Color { value: "abcdef" }.is_valid_hair_color());
@@ -227,5 +245,60 @@ mod test {
         }
         .is_valid());
         assert!(!PassportId { value: "1234567ab" }.is_valid());
+    }
+
+    #[test]
+    fn parse_proper_formatted_document() {
+        let password_doc = PasswordDoc::parse(
+            "pid:087499704 hgt:74in ecl:grn iyr:2012 eyr:2030 byr:1980
+        hcl:#623a2f",
+        )
+        .unwrap();
+
+        assert!(password_doc.is_valid());
+        assert!(PasswordDoc::parse(
+            "eyr:2029 ecl:blu cid:129 byr:1989
+        iyr:2014 pid:896056539 hcl:#a97842 hgt:165cm"
+        )
+        .unwrap()
+        .is_valid());
+    }
+
+    #[test]
+    fn give_non_for_improper_documents() {
+        assert_ne!(
+            PasswordDoc::parse(
+                "eyr:1972 cid:100
+        hcl:#18171d ecl:amb hgt:170 pid:186cm iyr:2018 byr:1926"
+            )
+            .map(|p| p.is_valid()),
+            Some(true)
+        );
+        assert_eq!(
+            PasswordDoc::parse(
+                "iyr:2019
+        hcl:#602927 eyr:1967 hgt:170cm
+        ecl:grn pid:012533040 byr:1946"
+            )
+            .map(|p| p.is_valid()),
+            Some(false)
+        );
+        assert_eq!(
+            PasswordDoc::parse(
+                "hcl:dab227 iyr:2012
+                ecl:brn hgt:182cm pid:021572410 eyr:2020 byr:1992 cid:277"
+            )
+            .map(|p| p.is_valid()),
+            Some(false)
+        );
+        assert_eq!(
+            PasswordDoc::parse(
+                "hgt:59cm ecl:zzz
+                eyr:2038 hcl:74454a iyr:2023
+                pid:3556412378 byr:2007"
+            )
+            .map(|p| p.is_valid()),
+            Some(false)
+        );
     }
 }
