@@ -110,34 +110,23 @@ impl<'i> PasswordDoc<'i> {
             hash_map.insert(token_name, token_value);
         });
 
-        let birth_year = hash_map.get("byr").map(|e| Year::parse(e)).flatten();
-        let issue_year = hash_map.get("iyr").map(|e| Year::parse(e)).flatten();
-        let expiration_year = hash_map.get("eyr").map(|e| Year::parse(e)).flatten();
-        let height = hash_map.get("hgt").map(|e| Height::parse(e)).flatten();
-        let hair_color = hash_map.get("hcl").map(|e| Color { value: e });
-        let eye_color = hash_map.get("ecl").map(|e| Color { value: e });
-        let passport_id = hash_map.get("pid").map(|e| PassportId { value: e });
+        let birth_year = hash_map.get("byr").map(|e| Year::parse(e)).flatten()?;
+        let issue_year = hash_map.get("iyr").map(|e| Year::parse(e)).flatten()?;
+        let expiration_year = hash_map.get("eyr").map(|e| Year::parse(e)).flatten()?;
+        let height = hash_map.get("hgt").map(|e| Height::parse(e)).flatten()?;
+        let hair_color = hash_map.get("hcl").map(|e| Color { value: e })?;
+        let eye_color = hash_map.get("ecl").map(|e| Color { value: e })?;
+        let password_id = hash_map.get("pid").map(|e| PassportId { value: e })?;
 
-        if birth_year.is_none()
-            || issue_year.is_none()
-            || expiration_year.is_none()
-            || height.is_none()
-            || hair_color.is_none()
-            || eye_color.is_none()
-            || passport_id.is_none()
-        {
-            None
-        } else {
-            Some(PasswordDoc {
-                birth_year: birth_year.unwrap(),
-                issue_year: issue_year.unwrap(),
-                expiration_year: expiration_year.unwrap(),
-                height: height.unwrap(),
-                eye_color: eye_color.unwrap(),
-                password_id: passport_id.unwrap(),
-                hair_color: hair_color.unwrap(),
-            })
-        }
+        Some(PasswordDoc {
+            birth_year,
+            issue_year,
+            expiration_year,
+            height,
+            eye_color,
+            password_id,
+            hair_color,
+        })
     }
 
     fn is_valid(&self) -> bool {
