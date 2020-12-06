@@ -16,7 +16,7 @@ fn sum_of_of_unique_questions_per_group(questions_per_group: &str) -> usize {
         .sum()
 }
 
-fn foo(questions: &str) -> usize {
+fn question_count_to_which_we_all_yes_answer(questions: &str) -> usize {
     let mut questions = questions.split_ascii_whitespace();
     let first_set = questions.next().unwrap();
     let remaining: Vec<&str> = questions.collect();
@@ -34,7 +34,7 @@ fn all_contains(vec: &Vec<&str>, character: &char) -> bool {
 fn sum_of_questions_to_which_every_one_answered_yes_in_group(question_per_group: &str) -> usize {
     question_per_group
         .split("\n\n")
-        .map(|question| foo(question))
+        .map(|question| question_count_to_which_we_all_yes_answer(question))
         .sum()
 }
 
@@ -63,6 +63,31 @@ b";
     }
 
     #[test]
-    fn count_sum_of_question_to_which_every_one_answered_yes_in_a_group() {}
-
+    fn count_sum_of_question_to_which_every_one_answered_yes_in_a_group() {
+        assert_eq!(question_count_to_which_we_all_yes_answer("abc"), 3);
+        assert_eq!(
+            question_count_to_which_we_all_yes_answer(
+                "a
+b
+c"
+            ),
+            0
+        );
+        assert_eq!(
+            question_count_to_which_we_all_yes_answer(
+                "ab
+ac"
+            ),
+            1
+        );assert_eq!(
+            question_count_to_which_we_all_yes_answer(
+                "a
+a
+a
+a
+"
+            ),
+            1
+        );
+    }
 }

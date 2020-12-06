@@ -33,12 +33,12 @@ fn get_all_seat_ids(tickets: &str) -> Vec<usize> {
         .collect()
 }
 
-fn seat_ids_having_diff_2(tickets: &str) -> Vec<usize> {
+fn seat_ids_having_diff_2(tickets: &str) -> Option<usize> {
     let ids = get_all_seat_ids(tickets);
     ids.to_owned()
         .into_iter()
-        .filter(|e| !ids.contains(&(e + 1)) || !ids.contains(&(e - 1)))
-        .collect()
+        .find(|e| ids.contains(&(e + 2)) && !ids.contains(&(e + 1)))
+        .map(|s| s + 1)
 }
 
 fn find_element_having_given_diff_with(
@@ -1016,6 +1016,6 @@ FFFBBFFLLL
 BBFFFBFLLL
 BFFFBFBRLL
 FFFBBFFRLR";
-        assert_eq!(seat_ids_having_diff_2(input), vec![]);
+        assert_eq!(seat_ids_having_diff_2(input), Some(607));
     }
 }
