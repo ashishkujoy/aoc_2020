@@ -22,7 +22,6 @@ fn foo(questions: &str) -> usize {
     let remaining: Vec<&str> = questions.collect();
 
     first_set
-        .clone()
         .chars()
         .filter(|c| all_contains(&remaining, c))
         .count()
