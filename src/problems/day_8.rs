@@ -24,7 +24,7 @@ impl<'s> OptCode<'s> {
         }
     }
 
-    fn execute(&mut self, opt_machine_state: OptMachineState) -> OptMachineState {
+    fn execute(&mut self, opt_machine_state: &OptMachineState) -> OptMachineState {
         self.is_executed = true;
 
         match self.operation {
@@ -38,6 +38,7 @@ impl<'s> OptCode<'s> {
     }
 }
 
+#[derive(Clone, Copy)]
 struct OptMachineState {
     instruction_pointer: isize,
     accumulator: isize,
@@ -74,7 +75,42 @@ fn accumulator_before_hang(instructions: &str) -> isize {
         if opt_code.is_executed {
             break;
         } else {
-            opt_machine_state = opt_code.execute(opt_machine_state);
+            opt_machine_state = opt_code.execute(&opt_machine_state);
+        }
+    }
+
+    opt_machine_state.accumulator
+}
+
+fn accumulator_after_machine_completes(instructions: &str) -> isize {
+    let mut opt_codes = instructions
+        .lines()
+        .map(|i| OptCode::parse(i))
+        .collect::<Vec<OptCode>>();
+
+    let mut opt_machine_state = OptMachineState {
+        instruction_pointer: 0,
+        accumulator: 0,
+    };
+
+    loop {
+        if opt_machine_state.instruction_pointer as usize >= opt_codes.len() {
+            break;
+        }
+
+        let opt_code = &mut opt_codes[opt_machine_state.instruction_pointer as usize];
+        let new_machine_state = opt_code.execute(&opt_machine_state);
+
+        if new_machine_state.instruction_pointer as usize >= opt_codes.len() {
+            opt_machine_state = new_machine_state;
+            break;
+        }
+        let next_opt_code = &mut opt_codes[new_machine_state.instruction_pointer as usize];
+
+        if next_opt_code.is_executed {
+            opt_machine_state = opt_machine_state.shift_instruction_pointer_by(1);
+        } else {
+            opt_machine_state = new_machine_state;
         }
     }
 
@@ -125,5 +161,19 @@ mod tests {
         jmp -4
         acc +6";
         assert_eq!(accumulator_before_hang(input), 5);
+    }
+
+    #[test]
+    fn get_accumulator_count_after_machine_completes_by_skiping_hung() {
+        let input = "nop +0
+        acc +1
+        jmp +4
+        acc +3
+        jmp -3
+        acc -99
+        acc +1
+        nop -4
+        acc +6";
+        assert_eq!(accumulator_after_machine_completes(input), 8);
     }
 }
